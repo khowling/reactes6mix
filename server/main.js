@@ -19,6 +19,7 @@ app.get('/go', function(req, res){
   res.render('index', {title: "Working"});
 });
 
+var CONSUMER_SECRET = '141664825981593229';
 app.post('/',  urlencodedParser, function(req, res){
 
 		console.log ('got the post from salesforce ' + req.body);
@@ -46,7 +47,7 @@ app.post('/',  urlencodedParser, function(req, res){
 			throw 'Unknown algorithm '+algorithm+'. Expected HMACSHA256';
 		}
 
-		expectedSig = crypto.createHmac('sha256', secret).update(encodedEnvelope).digest('base64');
+		expectedSig = crypto.createHmac('sha256', CONSUMER_SECRET).update(encodedEnvelope).digest('base64');
 		if (encodedSig !== expectedSig) {
 			throw 'Bad signed JSON Signature!';
 		}
