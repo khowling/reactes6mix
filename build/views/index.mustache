@@ -6,7 +6,13 @@
   <title>myreact</title>
   <meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'/>
   <script>
-    var serverprops = { canvas_req: "{{canvas_req}}"  };
+    var serverprops = {};
+    try {
+      serverprops = { canvas_req: JSON.parse('{{canvas_req}}')};
+      console.log ('got canvas req : ' + JSON.stringify(serverprops.canvas_req));
+    } catch (e) {
+      console.log ('cannot decode {{canvas_req}}');
+    }
   </script>
 </head>
 <body>
