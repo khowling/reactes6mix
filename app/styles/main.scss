@@ -1,0 +1,61 @@
+
+
+/* $line-height-text: 1.1;
+*/
+@import '~@salesforce-ux/design-system/scss/index.scss';
+
+.slds-icon-utility {
+    fill: #54698d;
+    padding: 0.5rem;
+}
+
+input[type=range].tickonly::-webkit-slider-thumb {
+    display: none;
+}
+input[type=range].tickonly{
+    width: 100%;
+    height: 0.1px;
+    background: #fff;
+    border: none;
+    width: 88%;
+    margin-left: 6%;
+}
+
+input[type=range].flex  {
+    -webkit-appearance: none;
+    width: 100%;
+}
+
+input[type=range].flex::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 10px;
+    background: #ddd;
+    border: none;
+    border-radius: 10px;
+    //background: -webkit-linear-gradient(left, #27ae60 0%, #27ae60 50%, #e6e6e6 50%);
+}
+
+input[type=range].flex::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    //border: none;
+    //height: 24px;
+    //width: 24px;
+    //border-radius: 50%;
+    //background: goldenrod;
+
+    height: 32px;
+    width: 32px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid #ccc;
+
+    margin-top: -10px;
+}
+
+input[type=range].flex:focus {
+    outline: none;
+}
+
+input[type=range].flex:focus::-webkit-slider-runnable-track {
+    background: #ccc;
+}

@@ -16541,6 +16541,29 @@
 	      alert(val);
 	    }
 	  }, {
+	    key: 'componentDidMount',
+	    value: function componentDidMount() {
+	      var _this = this;
+
+	      var client = new XMLHttpRequest();
+	      client.open('GET', '/data');
+	      client.withCredentials = true;
+	      client.send();
+	      client.onload = function (e) {
+	        if (client.status == 200) {
+	          // Performs the function "resolve" when this.status is equal to 200
+	          console.log('got records : ' + client.response);
+	          _this.setState({ data: JSON.parse(client.response) });
+	        } else {
+	          // Performs the function "reject" when this.status is different than 200
+	          reject(client.response);
+	        }
+	      };
+	      client.onerror = function (e) {
+	        reject("Network Error: " + this.statusText);
+	      };
+	    }
+	  }, {
 	    key: 'render',
 	    value: function render() {
 	      console.log("App: render");
@@ -16591,12 +16614,12 @@
 	            _react2['default'].createElement(
 	              'div',
 	              { className: 'slds-col--padded slds-size--1-of-2 slds-medium-size--1-of-2' },
-	              _react2['default'].createElement(_componentsStatsJsx2['default'], null)
+	              _react2['default'].createElement(_componentsStatsJsx2['default'], { pnl: this.state.data && this.state.data.pnl })
 	            ),
 	            _react2['default'].createElement(
 	              'div',
 	              { className: 'slds-col--padded slds-size--1-of-2 slds-medium-size--1-of-2' },
-	              _react2['default'].createElement(_componentsSliderJsx2['default'], null)
+	              _react2['default'].createElement(_componentsSliderJsx2['default'], { initials: this.state.data && this.state.data.leavers })
 	            )
 	          )
 	        )
@@ -16683,12 +16706,13 @@
 	    _classCallCheck(this, Sliders);
 
 	    _get(Object.getPrototypeOf(Sliders.prototype), 'constructor', this).call(this, props);
-	    this.state = { sliders: [{ key: "slid-rev", name: "Revenue", min: 0, max: 100, step: 1 }, { key: "slid-site", name: "Sites", min: 0, max: 100, step: 20 }, { key: "slid-dsc", name: "Yes/No", min: 0, max: 100, step: 100 }, { key: "slid-mar", name: "Margin", min: 0, max: 6, step: 1 }, { key: "slid-1", name: "0-60", min: 0, max: 60, step: 10 }] };
+	    this.state = { sliders: [{ key: "term", name: "Term", min: 6, max: 36, step: 6 }, { key: "port_discount", name: "Port Discount", min: 0, max: 100, step: 10 }, { key: "access_markup", name: "Access Markup", min: 0, max: 100, step: 5 }, { key: "slid-dsc", name: "Yes/No", min: 0, max: 100, step: 100 }, { key: "slid-1", name: "0-60", min: 0, max: 60, step: 10 }] };
 	  }
 
 	  _createClass(Sliders, [{
 	    key: 'render',
 	    value: function render() {
+	      var that = this;
 	      return _react2['default'].createElement(
 	        'div',
 	        { className: 'slds-card' },
@@ -16735,7 +16759,7 @@
 	                  _react2['default'].createElement(
 	                    'td',
 	                    { className: 'sl ds-size--2-of-3', 'data-label': 'Name' },
-	                    _react2['default'].createElement(Slider, { id: s.key, initial: 0, min: s.min, max: s.max, step: s.step })
+	                    _react2['default'].createElement(Slider, { id: s.key, initial: that.props.initials && that.props.initials[s.key] || 0, min: s.min, max: s.max, step: s.step })
 	                  )
 	                );
 	              })
@@ -16776,10 +16800,22 @@
 	  }
 
 	  _createClass(Slider, [{
+	    key: 'componentWillReceiveProps',
+	    value: function componentWillReceiveProps(nextProps) {
+	      if (nextProps.initial) this.setState({ current: nextProps.initial });
+	    }
+	  }, {
 	    key: '_changeVal',
 	    value: function _changeVal(e) {
 	      var inval = e.target.value;
+	      console.log(inval);
 	      this.setState({ current: inval });
+	    }
+	  }, {
+	    key: '_recalc',
+	    value: function _recalc(e) {
+	      var inval = e.target.value;
+	      console.log('recal with: ' + this.state.current);
 	    }
 	  }, {
 	    key: 'render',
@@ -16812,7 +16848,7 @@
 	          _react2['default'].createElement(
 	            'div',
 	            { style: { marginTop: (this.props.step > 1 || this.props.max <= 10) && "-8px" || "+15px" } },
-	            _react2['default'].createElement('input', { className: 'flex', min: this.props.min, max: this.props.max, value: this.state.current, step: this.props.step, onChange: this._changeVal.bind(this), type: 'range' })
+	            _react2['default'].createElement('input', { className: 'flex', min: this.props.min, max: this.props.max, value: this.state.current, step: this.props.step, onMouseUp: this._recalc.bind(this), onChange: this._changeVal.bind(this), type: 'range' })
 	          )
 	        ),
 	        _react2['default'].createElement(
@@ -16952,7 +16988,8 @@
 	                  _react2['default'].createElement(
 	                    'p',
 	                    { className: 'slds-text-heading--medium' },
-	                    '$500,000'
+	                    '£',
+	                    this.props.pnl && this.props.pnl.revenue || '????'
 	                  )
 	                ),
 	                _react2['default'].createElement(
@@ -16967,7 +17004,7 @@
 	                _react2['default'].createElement(
 	                  'td',
 	                  { className: 'slds-size--1-of-4', 'data-label': 'Name' },
-	                  'Margin'
+	                  'Gross Margin'
 	                ),
 	                _react2['default'].createElement(
 	                  'td',
@@ -16975,7 +17012,8 @@
 	                  _react2['default'].createElement(
 	                    'p',
 	                    { className: 'slds-text-heading--medium' },
-	                    '45%'
+	                    '£',
+	                    this.props.pnl && this.props.pnl.grossmargin || '????'
 	                  )
 	                ),
 	                _react2['default'].createElement(
@@ -16990,7 +17028,7 @@
 	                _react2['default'].createElement(
 	                  'td',
 	                  { className: 'slds-size--1-of-4', 'data-label': 'Name' },
-	                  'EBIT'
+	                  'Gross Margin %'
 	                ),
 	                _react2['default'].createElement(
 	                  'td',
@@ -16998,7 +17036,8 @@
 	                  _react2['default'].createElement(
 	                    'p',
 	                    { className: 'slds-text-heading--medium' },
-	                    '3,544'
+	                    this.props.pnl && this.props.pnl.marginage || '????',
+	                    '%'
 	                  )
 	                ),
 	                _react2['default'].createElement('td', { className: 'slds-size--1-of-4', 'data-label': 'Title' })

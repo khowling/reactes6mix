@@ -16,11 +16,12 @@
   "dependencies": {
     "babel-core": "5.x.x",
     "body-parser": "*",
+    "crypto": "*",
     "express": "*",
     "express-session": "*",
-    "crypto": "*",
     "hogan-middleware": "*",
-    "body-parser": "*"
+    "ioredis": "^1.14.0",
+    "restler": "^3.4.0"
   },
   "devDependencies": {
     "@salesforce-ux/design-system": "*",
