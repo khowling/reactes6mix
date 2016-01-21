@@ -6,7 +6,8 @@ app.use('/assets', express.static('assets'));
 app.use(express.static('build/static'));
 
 // create application/json parser
-var jsonParser = bodyParser.json()
+var jsonParser = bodyParser.json();
+var urlencodedParser = bodyParser.urlencoded({ extended: false });
 
 app.use(session({secret: 'reakky123', resave: true, saveUninitialized: true}));
 
@@ -18,9 +19,9 @@ app.get('/go', function(req, res){
   res.render('index', {title: "Working"});
 });
 
-app.post('/',  jsonParser, function(req, res){
+app.post('/',  urlencodedParser, function(req, res){
 
-		console.log ('got the post from salesforce');
+		console.log ('got the post from salesforce ' + req.body);
 
 		var   sreq = req.body.signed_request
 			, sreq_split = sreq.split('.')
