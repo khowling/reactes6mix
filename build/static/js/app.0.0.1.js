@@ -16574,7 +16574,7 @@
 	                  _react2['default'].createElement(
 	                    'div',
 	                    { className: 'slds-button-space-left' },
-	                    props.serverprops.canvas_req.context.user.fullName
+	                    this.props.serverprops.canvas_req.context.user.fullName
 	                  )
 	                )
 	              )
