@@ -8,10 +8,85 @@
   <script>
     var serverprops = {};
     try {
-      serverprops = { canvas_req: JSON.parse('{{canvas_req}}')};
+      serverprops = { canvas_req: JSON.parse('{{canvas_req}}'.replace(/&quot;/g, '"'))};
       console.log ('got canvas req : ' + JSON.stringify(serverprops.canvas_req));
     } catch (e) {
       console.log ('cannot decode {{canvas_req}}');
+      serverprops.canvas_req = {
+        client:
+         { refreshToken: null,
+           instanceId: '09H58000000PH5i:',
+           targetOrigin: 'https://kforce-dev-ed.my.salesforce.com',
+           instanceUrl: 'https://kforce-dev-ed.my.salesforce.com',
+           oauthToken: '00D58000000Hlh6!ARMAQCFIX1wmyjrADHsyyVm.NPcFDZb5FkpYlCZ.DvHPsMCvAr6MTxAIZCKdErw1cER4ZZcGBLvPjAaCO2LmG9ZASCEbp0vq' },
+        context:
+         { user:
+            { userId: '00558000000R5HUAA0',
+              userName: 'khowling@dev.org',
+              firstName: 'keith',
+              lastName: 'howling',
+              email: 'khowling@gmail.com',
+              fullName: 'keith howling',
+              locale: 'en_GB',
+              language: 'en_US',
+              timeZone: 'Europe/London',
+              profileId: '00e58000000WBp8',
+              roleId: null,
+              userType: 'STANDARD',
+              currencyISOCode: 'GBP',
+              profilePhotoUrl: 'https://kforce-dev-ed--c.eu6.content.force.com/profilephoto/005/F',
+              profileThumbnailUrl: 'https://kforce-dev-ed--c.eu6.content.force.com/profilephoto/005/T',
+              siteUrl: null,
+              siteUrlPrefix: null,
+              networkId: null,
+              accessibilityModeEnabled: false,
+              isDefaultNetwork: true },
+           links:
+            { loginUrl: 'https://kforce-dev-ed.my.salesforce.com',
+              enterpriseUrl: '/services/Soap/c/35.0/00D58000000Hlh6',
+              metadataUrl: '/services/Soap/m/35.0/00D58000000Hlh6',
+              partnerUrl: '/services/Soap/u/35.0/00D58000000Hlh6',
+              restUrl: '/services/data/v35.0/',
+              sobjectUrl: '/services/data/v35.0/sobjects/',
+              searchUrl: '/services/data/v35.0/search/',
+              queryUrl: '/services/data/v35.0/query/',
+              recentItemsUrl: '/services/data/v35.0/recent/',
+              chatterFeedsUrl: '/services/data/v31.0/chatter/feeds',
+              chatterGroupsUrl: '/services/data/v35.0/chatter/groups',
+              chatterUsersUrl: '/services/data/v35.0/chatter/users',
+              chatterFeedItemsUrl: '/services/data/v31.0/chatter/feed-items',
+              userUrl: '/00558000000R5HUAA0' },
+           application:
+            { name: 'vf-flex',
+              canvasUrl: 'https://vf-flex.herokuapp.com',
+              applicationId: '06P58000000PH7e',
+              version: '1.0',
+              authType: 'SIGNED_REQUEST',
+              referenceId: '09H58000000PH5i',
+              options: [],
+              samlInitiationMethod: 'None',
+              developerName: 'vf_flex',
+              namespace: 'khowling',
+              isInstalledPersonalApp: false },
+           organization:
+            { organizationId: '00D58000000Hlh6EAC',
+              name: 'salesforce',
+              multicurrencyEnabled: false,
+              namespacePrefix: 'khowling',
+              currencyIsoCode: 'GBP' },
+           environment:
+            { locationUrl: 'https://kforce-dev-ed.my.salesforce.com/canvas/proxy.jsp?a=%7B%22referenceId%22%3A%2209H58000000PH5i%22%7D&amp;ns=undefined&amp;dn=undefined&amp;ri=09H58000000PH5i&amp;s=00D58000000Hlh6!ARMAQM2DDXYRQ.nZD4TfWLQa6k2cdOOyz1CHuoTcFoPfD60ZFPeAi6LX46gJGRdK.56mBtRUKS.O.VeAJbEG6X4EF_APBrLl&amp;sr=&amp;dm=https://kforce-dev-ed.my.salesforce.com&amp;o=%7B%22frameborder%22%3A%220%22%2C%22width%22%3A%7B%22value%22%3A%22100%25%22%2C%22max%22%3A%221200px%22%7D%2C%22height%22%3A%7B%22value%22%3A%22200px%22%2C%22max%22%3A%22infinite%22%7D%2C%22scrolling%22%3A%22no%22%2C%22displayLocation%22%3A%22PageLayout%22%2C%22showLoadingStatus%22%3Atrue%2C%22record%22%3A%7B%22Id%22%3A%22a05580000004Dwn%22%2C%22fields%22%3A%22%22%7D%2C%22clientWidth%22%3A%22994px%22%2C%22clientHeight%22%3A%2230px%22%7D&amp;v=35.0',
+              displayLocation: 'PageLayout',
+              sublocation: null,
+              uiTheme: 'Theme3',
+              dimensions: [Object],
+              parameters: {},
+              record: {
+                attributes: {
+                  "type":"khowling__Bid__c",
+                  "url":"/services/data/v35.0/sobjects/khowling__Bid__c/a05580000004DwnAAE"},
+                  "Id":"a05580000004DwnAAE"},
+              version: [Object] } } };
     }
   </script>
 </head>
