@@ -19,7 +19,8 @@
     "express": "*",
     "express-session": "*",
     "crypto": "*",
-    "hogan-middleware": "*"
+    "hogan-middleware": "*",
+    "body-parser": "*"
   },
   "devDependencies": {
     "@salesforce-ux/design-system": "*",

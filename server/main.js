@@ -1,8 +1,12 @@
 var express = require('express');
 var session = require('express-session');
+var bodyParser = require('body-parser');
 var app = express();
 app.use('/assets', express.static('assets'));
 app.use(express.static('build/static'));
+
+// create application/json parser
+var jsonParser = bodyParser.json()
 
 app.use(session({secret: 'reakky123', resave: true, saveUninitialized: true}));
 
@@ -14,7 +18,7 @@ app.get('/go', function(req, res){
   res.render('index', {title: "Working"});
 });
 
-app.post('/',  function(req, res){
+app.post('/',  jsonParser, function(req, res){
 
 		console.log ('got the post from salesforce');
 
