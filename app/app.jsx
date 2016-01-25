@@ -28,7 +28,30 @@ export default class App extends Component {
        if (client.status == 200) {
          // Performs the function "resolve" when this.status is equal to 200
          console.log (`got records : ${client.response}`);
-         this.setState ({data: JSON.parse(client.response)});
+         let data = JSON.parse(client.response);
+         this.setState ({pnl: data.pnl, leavers: data.leavers});
+       } else {
+         // Performs the function "reject" when this.status is different than 200
+         reject(client.response);
+       }
+     };
+     client.onerror = function (e) {
+       reject("Network Error: " + this.statusText);
+     };
+   }
+
+   _recalc(leavers) {
+     var client = new XMLHttpRequest();
+     client.open('POST', '/recalc');
+     client.withCredentials = true;
+     client.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+     client.send(JSON.stringify(leavers));
+     client.onload = (e) => {
+       if (client.status == 200) {
+         // Performs the function "resolve" when this.status is equal to 200
+         let data = JSON.parse(client.response);
+        console.log (`app setState leavers : ${data.leavers}`);
+         this.setState ({pnl: data.pnl, leavers: data.leavers});
        } else {
          // Performs the function "reject" when this.status is different than 200
          reject(client.response);
@@ -44,33 +67,14 @@ export default class App extends Component {
     if (this.state.booted)
       return (
         <div className="slds">
-            <section className="site-banner">
-              <div className="slds-container--center slds-container--medium">
-                 <div className="slds-grid">
-                   <div className="slds-col slds-has-flexi-truncate">
-                       <a href="#"><SvgIcon classOverride="icon-utility" large={true} spriteType="utility" spriteName="apps"/></a>
-                   </div>
-
-                   <div className="slds-col slds-no-flex slds-align-bottom">
-                     <div className="slds-grid">
-                       <div className="slds-button-space-left" >
-                         {this.props.serverprops.canvas_req.context.user.fullName}
-                       </div>
-                     </div>
-                   </div>
-                 </div>
-               </div>
-           </section>
-
            <div style={{height: "3.5rem"}}></div>
-
            <div className="container">
               <div className="slds-grid slds-wrap">
                 <div className="slds-col--padded slds-size--1-of-2 slds-medium-size--1-of-2">
-                  <Stats pnl={this.state.data && this.state.data.pnl}/>
+                  <Stats pnl={this.state.pnl}/>
                 </div>
                 <div className="slds-col--padded slds-size--1-of-2 slds-medium-size--1-of-2">
-                  <Sliders initials={this.state.data && this.state.data.leavers}/>
+                  <Sliders initials={this.state.leavers} recalcFn={this._recalc.bind(this)}/>
                 </div>
              </div>
            </div>

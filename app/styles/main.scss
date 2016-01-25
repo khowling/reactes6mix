@@ -1,9 +1,14 @@
 
-
-/* $line-height-text: 1.1;
+/*
+$line-height-text: 1.1;
+$font-size-medium: 0.575rem;
+$font-size-large: 0.575rem;
 */
 @import '~@salesforce-ux/design-system/scss/index.scss';
 
+body {
+ //font-size: 70%;
+}
 .slds-icon-utility {
     fill: #54698d;
     padding: 0.5rem;
@@ -17,8 +22,8 @@ input[type=range].tickonly{
     height: 0.1px;
     background: #fff;
     border: none;
-    width: 88%;
-    margin-left: 6%;
+    width: 86%;
+    margin-left: 7%;
 }
 
 input[type=range].flex  {

@@ -6,13 +6,21 @@ import {SvgIcon} from './utils.jsx';
 export default class Sliders extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {sliders: [
+    this._newSliderValue = this._newSliderValue.bind(this);
+    this.state = {newvalues: {}, sliders: [
       {key: "term", name: "Term", min: 6, max: 36, step: 6},
       {key: "port_discount", name: "Port Discount", min: 0, max: 100, step: 10},
       {key: "access_markup", name: "Access Markup", min: 0, max: 100, step: 5},
       {key: "slid-dsc", name: "Yes/No", min: 0, max: 100, step: 100},
       {key: "slid-1", name: "0-60", min: 0, max: 60, step: 10}
     ]};
+  }
+
+  _newSliderValue(val) {
+    this.setState({newvalues: Object.assign(this.state.newvalues, val)}, () => {
+        console.log (`got new slider val ${JSON.stringify(this.state.newvalues)}`);
+        this.props.recalcFn (this.state.newvalues);
+    });
   }
 
   render() {
@@ -35,8 +43,8 @@ export default class Sliders extends React.Component {
             <tbody>
               { this.state.sliders.map(s => { return (
                 <tr key={s.key} className="slds-hint-parent">
-                  <td className="sl ds-size--1-of-3" data-label="Name">{s.name}</td>
-                  <td className="sl ds-size--2-of-3" data-label="Name"><Slider id={s.key} initial={that.props.initials && that.props.initials[s.key] || 0} min={s.min} max={s.max}  step={s.step}/></td>
+                  <td className="sl ds-s ize--1-of-3" data-label="Name">{s.name}</td>
+                  <td className="sl ds-si ze--2-of-3" data-label="Name"><Slider id={s.key} initial={that.props.initials && that.props.initials[s.key] || 0} min={s.min} max={s.max}  step={s.step} updateValueFn={that._newSliderValue}/></td>
                 </tr>
               );})}
             </tbody>
@@ -55,7 +63,10 @@ export class Slider extends React.Component {
     this.state = {current: props.initial};
   }
   componentWillReceiveProps(nextProps) {
-    if (nextProps.initial) this.setState({current: nextProps.initial});
+    if (nextProps.initial && (nextProps.initial !== this.state.current && nextProps.initial !== this.props.initial )) {
+      console.log (`componentWillReceiveProps prop ${nextProps.initial} state ${this.state.current}`);
+      this.setState({current: nextProps.initial});
+    }
   }
 
   _changeVal(e) {
@@ -64,8 +75,9 @@ export class Slider extends React.Component {
     this.setState ({current: inval});
   }
   _recalc (e) {
-    let inval = e.target.value;
+    let inval = new Number(e.target.value);
     console.log ('recal with: ' + this.state.current);
+    this.props.updateValueFn ({[this.props.id] : inval});
   }
 
   render() {
@@ -75,8 +87,8 @@ export class Slider extends React.Component {
         steps.push(i);
 
     return (
-      <div style={{width: "300px"}}>
-        <div style={{width: "250px", display: "inline-block"}}>
+      <div style={{width: "270px"}}>
+        <div style={{width: "220px", display: "inline-block"}}>
           { (this.props.step > 1 || this.props.max <= 10) &&
             <div>
               <input className="tickonly" min={this.props.min} max={this.props.max} step={this.props.step} type="range" list={"list"+this.props.id}/>
