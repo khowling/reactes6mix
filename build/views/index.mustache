@@ -9,7 +9,7 @@
     var serverprops = {};
     try {
       serverprops = { canvas_req: JSON.parse('{{canvas_req}}'.replace(/&quot;/g, '"'))};
-      console.log ('got canvas req : ' + JSON.stringify(serverprops.canvas_req));
+      //console.log ('got canvas req : ' + JSON.stringify(serverprops.canvas_req));
     } catch (e) {
       console.log ('cannot decode {{canvas_req}}');
     }

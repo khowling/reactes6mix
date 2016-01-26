@@ -3,13 +3,13 @@
 <html lang="eu">
 <head>
   <meta charset="utf-8"/>
-  <title><%= TITLE %></title>
+  <title>myreact</title>
   <meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'/>
   <script>
     var serverprops = {};
     try {
-      serverprops = { canvas_req: JSON.parse('{{canvas_req}}'.replace(/&quot;/g, '"'))};
-      //console.log ('got canvas req : ' + JSON.stringify(serverprops.canvas_req));
+      serverprops = { canvas_req: JSON.parse('{{canvas_req}}')};
+      console.log ('got canvas req : ' + JSON.stringify(serverprops.canvas_req));
     } catch (e) {
       console.log ('cannot decode {{canvas_req}}');
     }
@@ -17,6 +17,6 @@
 </head>
 <body>
   <span id="app"/>
-  <script src="js/app.<%= VERSION %>.js"></script>
+  <script src="js/app.0.0.1.js"></script>
 </body>
 </html>

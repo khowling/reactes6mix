@@ -15,6 +15,7 @@ export default class App extends Component {
     else
       this.state = { booted: false, booterr: "Unorthorised, Log a ticket with your salesforce admin to access this app" };
    }
+
    handleChange (val) {
      alert (val);
    }
@@ -27,39 +28,47 @@ export default class App extends Component {
      client.onload = (e) => {
        if (client.status == 200) {
          // Performs the function "resolve" when this.status is equal to 200
-         console.log (`got records : ${client.response}`);
-         let data = JSON.parse(client.response);
-         this.setState ({pnl: data.pnl, leavers: data.leavers});
+         //console.log (`componentDidMount got : ${client.response}`);
+         this.setState (JSON.parse(client.response));
        } else {
          // Performs the function "reject" when this.status is different than 200
-         reject(client.response);
+         console.log('error ' + client.response);
        }
      };
      client.onerror = function (e) {
-       reject("Network Error: " + this.statusText);
+       console.log("Network Error: " + this.statusText);
      };
    }
 
-   _recalc(leavers) {
+   _recalc(leavers, save) {
      var client = new XMLHttpRequest();
-     client.open('POST', '/recalc');
+     client.open('POST', '/recalc' + (save && '?save=1' || ''));
      client.withCredentials = true;
      client.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-     client.send(JSON.stringify(leavers));
+     client.send(JSON.stringify(Object.assign({}, this.state.leavers, leavers)));
      client.onload = (e) => {
        if (client.status == 200) {
          // Performs the function "resolve" when this.status is equal to 200
          let data = JSON.parse(client.response);
-        console.log (`app setState leavers : ${data.leavers}`);
+        console.log (`app setState leavers : ${JSON.stringify(data.leavers)}`);
          this.setState ({pnl: data.pnl, leavers: data.leavers});
        } else {
          // Performs the function "reject" when this.status is different than 200
-         reject(client.response);
+         console.log('error ' + client.response);
        }
      };
      client.onerror = function (e) {
-       reject("Network Error: " + this.statusText);
+       console.log("Network Error: " + this.statusText);
      };
+   }
+
+   _saveFlex() {
+     this._recalc(this.state.leavers, true);
+   }
+
+   _loadVersion(id) {
+     let ver = this.state.versions.find((v) => v.Id === id);
+     this._recalc (JSON.parse(ver.khowling__Leavers__c), false);
    }
 
    render () {
@@ -67,13 +76,13 @@ export default class App extends Component {
     if (this.state.booted)
       return (
         <div className="slds">
-           <div style={{height: "3.5rem"}}></div>
+           <div style={{height: "1.5rem"}}></div>
            <div className="container">
               <div className="slds-grid slds-wrap">
-                <div className="slds-col--padded slds-size--1-of-2 slds-medium-size--1-of-2">
-                  <Stats pnl={this.state.pnl}/>
+                <div className="slds-col--padded slds-size--2-of-5 slds-medium-size--2-of-5">
+                  <Stats pnl={this.state.pnl} versions={this.state.versions} saveFlex={this._saveFlex.bind(this)} loadVersion={this._loadVersion.bind(this)}/>
                 </div>
-                <div className="slds-col--padded slds-size--1-of-2 slds-medium-size--1-of-2">
+                <div className="slds-col--padded slds-size--3-of-5 slds-medium-size--3-of-5">
                   <Sliders initials={this.state.leavers} recalcFn={this._recalc.bind(this)}/>
                 </div>
              </div>

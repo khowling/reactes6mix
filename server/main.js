@@ -23,43 +23,91 @@ app.engine('mustache', require('hogan-middleware').__express);
 function getData(key, canvasobj) {
   return new Promise((resolve, reject) => {
 
-    rest.get ( canvasobj.client.instanceUrl +  canvasobj.context.links.queryUrl, {
-      headers: {
-        'Authorization': 'Bearer ' +canvasobj.client.oauthToken,
-      } ,
-      query: {
-        q:`select Id, khowling__Bid__r.Name, khowling__Bid__r.khowling__Contract_Term__c,  khowling__Router_Selection__r.Name, khowling__Router_Selection__r.khowling__Cost__c, khowling__Router_Selection__r.khowling__Markup__c, khowling__Access_Method__r.Name, khowling__Access_Method__r.khowling__One_Off_Cost__c, khowling__Access_Method__r.khowling__Recurring_Cost__c, khowling__Access_Method__r.khowling__Markup__c, khowling__Bandwidth__c from khowling__Bid_Site__c where khowling__Bid__c = '${canvasobj.context.environment.record.Id}'`
-      }
-    }).on('complete', (sfrecs) => {
-      console.log (JSON.stringify(sfrecs));
-      if (sfrecs.records && sfrecs.records.length >0) {
+    let pWork = [];
+
+    pWork.push(new Promise((resolve1, reject1) => {
+      let st = Date.now();
+      console.log ('start get versions');
+      rest.get ( canvasobj.client.instanceUrl +  canvasobj.context.links.queryUrl, {
+        headers: {
+          'Authorization': 'Bearer ' +canvasobj.client.oauthToken,
+        } ,
+        query: {
+          q:`select Id, Name, khowling__Leavers__c, khowling__P_L__c from khowling__Bid_P_L__c where khowling__Bid__c = '${canvasobj.context.environment.record.Id}'`
+        }
+      }).on('complete', (sfrecs) => {
+        console.log ('finished get version (ms): ' + (Date.now() - st));
+        if (sfrecs.records && sfrecs.records.length >0)
+          resolve1({versions: JSON.stringify(sfrecs.records)});
+        else
+          resolve1({versions: JSON.stringify([])});
+      }).on('error', (err) => {
+  			console.error('error', err);
+  			reject1('err : ' + err);
+  		}).on ('fail', (err) => {
+  			console.error('fail', err);
+  			reject1('fail : ' + err);
+  		});
+    }));
+
+    pWork.push (new Promise((resolve2, reject2) => {
+      let st = Date.now();
+      console.log ('start get bid');
+      rest.get ( canvasobj.client.instanceUrl +  canvasobj.context.links.queryUrl, {
+        headers: {
+          'Authorization': 'Bearer ' +canvasobj.client.oauthToken,
+        } ,
+        query: {
+          q:`select Id, khowling__Bid__r.Name, khowling__Bid__r.khowling__Contract_Term__c,  khowling__Router_Selection__r.Name, khowling__Router_Selection__r.khowling__Cost__c, khowling__Router_Selection__r.khowling__Markup__c, khowling__Access_Method__r.Name, khowling__Access_Method__r.khowling__One_Off_Cost__c, khowling__Access_Method__r.khowling__Recurring_Cost__c, khowling__Access_Method__r.khowling__Markup__c, khowling__Bandwidth__c, khowling__Bid_Port_Speed__r.khowling__Cost__c, khowling__Bid_Port_Speed__r.khowling__Markup__c from khowling__Bid_Site__c where khowling__Bid__c = '${canvasobj.context.environment.record.Id}'`
+        }
+      }).on('complete', (sfrecs) => {
+        console.log ('finished get bid (ms): ' + (Date.now() - st));
         let leavers = {
-          term: parseInt(sfrecs.records[0].khowling__Bid__r.khowling__Contract_Term__c),
+          term: 0,
           port_discount: 0,
           access_markup: 0,
-          cpe_hardware: true,
+          cpe_hardware: 0,
           amort_oneoff: 0
         };
+        if (sfrecs.records && sfrecs.records.length >0) {
+          leavers.term = parseInt(sfrecs.records[0].khowling__Bid__r.khowling__Contract_Term__c);
+          let pnl = calcpnl (sfrecs.records, leavers);
 
-        let pnl = calcpnl (sfrecs.records, leavers);
-
-        redis.hmset(`${key}:data`, {
+          resolve2({
             pnl: JSON.stringify(pnl),
             leavers: JSON.stringify(leavers),
             sfrecs: JSON.stringify(sfrecs.records)
-          }).then((succ) =>
-            redis.lpush(key, "done"), (succ) =>
-              resolve(succ));
+          });
+        } else {
+          resolve2({
+            pnl: JSON.stringify(calcpnl()),
+            leavers: JSON.stringify(leavers),
+            sfrecs: JSON.stringify([])
+          });
+        }
+      }).on('error', (err) => {
+  			console.error('error', err);
+  			reject2('err : ' + err);
+  		}).on ('fail', (err) => {
+  			console.error('fail', err);
+  			reject2('fail : ' + err);
+  		});
+    }));
 
-      }
-    }).on('error', (err) => {
-			console.error('error', err);
-			reject('err : ' + err);
-		}).on ('fail', (err) => {
-			console.error('fail', err);
-			reject('fail : ' + err);
-		});
-  })
+    Promise.all(pWork).then((vals) => {
+      let results = Object.assign({}, vals[0], vals[1]);
+      console.log (`Got all results ${JSON.stringify(Object.keys(results))}`);
+      redis.hmset(`${key}:data`, results).then((succ) => {
+        console.log (`added data  ${JSON.stringify(succ)}`);
+        redis.lpush(key, "done", (succ) => {
+          console.log (`psuhed done ${JSON.stringify(succ)}`);
+          resolve(succ)
+        });
+      }, (err) => {
+        reject(err);
+      })
+    });
+  });
 }
 
 function calcpnl (sfrecs, leavers) {
@@ -68,25 +116,42 @@ function calcpnl (sfrecs, leavers) {
     grossmargin: 0.0,
   };
 
-  for (let r of sfrecs) {
+  if (sfrecs && sfrecs.length >0) for (let r of sfrecs) {
+
+    if (!r.khowling__Router_Selection__r) r.khowling__Router_Selection__r = {khowling__Cost__c: 0, khowling__Markup__c:0};
+    if (!r.khowling__Bid_Port_Speed__r) r.khowling__Bid_Port_Speed__r = {khowling__Cost__c: 0, khowling__Markup__c:0};
+    if (!r.khowling__Access_Method__r) r.khowling__Access_Method__r = {khowling__Recurring_Cost__c: 0, khowling__One_Off_Cost__c:0, khowling__Markup__c:0};
+
     let router_1cost = r.khowling__Router_Selection__r.khowling__Cost__c,
-        router_price = router_1cost + (r.khowling__Router_Selection__r.khowling__Markup__c * router_1cost),
+        router_price = router_1cost + ((r.khowling__Router_Selection__r.khowling__Markup__c /100) * router_1cost),
+        port_1cost = r.khowling__Bid_Port_Speed__r.khowling__Cost__c,
+        port_price = port_1cost + ((r.khowling__Bid_Port_Speed__r.khowling__Markup__c /100) * port_1cost),
         access_1cost = r.khowling__Access_Method__r.khowling__One_Off_Cost__c,
         access_ncost = r.khowling__Access_Method__r.khowling__Recurring_Cost__c * leavers.term,
-        access_price = access_1cost  + (r.khowling__Access_Method__r.khowling__Markup__c * access_1cost)  + access_ncost  + (r.khowling__Access_Method__r.khowling__Markup__c * access_ncost),
-        revenue = router_price + access_price,
-        grossmargin = revenue - router_1cost - access_1cost - access_ncost;
+        access_price = access_1cost  + ((r.khowling__Access_Method__r.khowling__Markup__c /100) * access_1cost)  + access_ncost  + ((r.khowling__Access_Method__r.khowling__Markup__c / 100) * access_ncost),
+        revenue = router_price + access_price + port_price;
+
+    if (leavers.port_discount >0) revenue -= (port_price / 100.0) * leavers.port_discount;
+    if (leavers.access_markup >0) revenue += (access_price / 100.0) * leavers.access_markup;
+    if (leavers.cpe_hardware == 1) revenue -= router_price;
+    console.log (`revenue  router_price ${router_price} + access_price ${access_price} + port_price ${port_price} = ${revenue}`);
+    let grossmargin = revenue - router_1cost - access_1cost - access_ncost - port_1cost;
 
     pnl.revenue+= revenue;
     pnl.grossmargin+= grossmargin;
   }
-  pnl.marginage = ((pnl.grossmargin / pnl.revenue) * 100).toFixed(2);
+
+  try {
+    pnl.marginage = ((pnl.grossmargin / pnl.revenue) * 100);
+  } catch (e) {
+    pnl.marginage = 0;
+  }
   return pnl;
 }
 
 app.post('/recalc', jsonParser, function(req, res) {
-  let leavers = req.body;
-  console.log (`leavers ${JSON.stringify(leavers)}`);
+  let leavers = req.body, save = req.query.save;
+  console.log (`leavers ${JSON.stringify(leavers)} ${save}`);
 
   if (!req.session.signedreq)
     res.status(400).send("not authorized");
@@ -97,19 +162,43 @@ app.post('/recalc', jsonParser, function(req, res) {
       if (err)
         res.status(400).send(err);
       else {
-        let newleavers = Object.assign({}, JSON.parse(data.leavers), leavers);
-        res.json({leavers: newleavers, pnl: calcpnl(JSON.parse(data.sfrecs), newleavers)});
+        if (!save) {
+          let newleavers = Object.assign({}, JSON.parse(data.leavers), leavers);
+          res.json({leavers: newleavers, pnl: calcpnl(JSON.parse(data.sfrecs), newleavers)});
+        } else {
+          console.log ('saving');
+          let canvasobj = req.session.signedreq,
+              pnl = calcpnl(JSON.parse(data.sfrecs), leavers);
+          rest.postJson ( canvasobj.client.instanceUrl +  canvasobj.context.links.sobjectUrl + 'khowling__Bid_P_L__c',
+            {
+              "khowling__Bid__c": canvasobj.context.environment.record.Id,
+              "khowling__Leavers__c": JSON.stringify(leavers),
+              "khowling__P_L__c": JSON.stringify(pnl)
+            },{
+            headers: {
+              'Authorization': 'Bearer ' +canvasobj.client.oauthToken,
+            } ,
+          }).on('complete', (sfrecs) => {
+            console.log ('got ' + JSON.stringify(sfrecs));
+            res.json({leavers: leavers, pnl: pnl});
+          });
+        }
       }
     });
 });
 
 app.get('/go', function(req, res){
-  let token = '00D58000000Hlh6!ARMAQE4PVltEI1Dsgug9alAyeMEChiQX.TlwdrrT7C6h3s0_oqrNs3MEFqn5ah3Gv9ejDjHBuMk0QHo4ncljJ4D0gbUOeBRl';
+  let token = '00D58000000Hlh6!ARMAQPdDEtexi8g2WFX_6v7ter8MUFfc_4PKorjr.7fahFhwOHDH4jxxqwoIzNpr3Jub_2vk_F_9K.IxoJiBBrudP2qr6STc';
   let json_envelope = '{"algorithm":"HMACSHA256","issuedAt":1677461276,"userId":"00558000000R5HUAA0","client":{"refreshToken":null,"instanceId":"09H58000000PH5i:","targetOrigin":"https://kforce-dev-ed.my.salesforce.com","instanceUrl":"https://kforce-dev-ed.my.salesforce.com","oauthToken":"'+token+'"},"context":{"user":{"userId":"00558000000R5HUAA0","userName":"khowling@dev.org","firstName":"keith","lastName":"howling","email":"khowling@gmail.com","fullName":"keith howling","locale":"en_GB","language":"en_US","timeZone":"Europe/London","profileId":"00e58000000WBp8","roleId":null,"userType":"STANDARD","currencyISOCode":"GBP","profilePhotoUrl":"https://kforce-dev-ed--c.eu6.content.force.com/profilephoto/005/F","profileThumbnailUrl":"https://kforce-dev-ed--c.eu6.content.force.com/profilephoto/005/T","siteUrl":null,"siteUrlPrefix":null,"networkId":null,"accessibilityModeEnabled":false,"isDefaultNetwork":true},"links":{"loginUrl":"https://kforce-dev-ed.my.salesforce.com","enterpriseUrl":"/services/Soap/c/35.0/00D58000000Hlh6","metadataUrl":"/services/Soap/m/35.0/00D58000000Hlh6","partnerUrl":"/services/Soap/u/35.0/00D58000000Hlh6","restUrl":"/services/data/v35.0/","sobjectUrl":"/services/data/v35.0/sobjects/","searchUrl":"/services/data/v35.0/search/","queryUrl":"/services/data/v35.0/query/","recentItemsUrl":"/services/data/v35.0/recent/","chatterFeedsUrl":"/services/data/v31.0/chatter/feeds","chatterGroupsUrl":"/services/data/v35.0/chatter/groups","chatterUsersUrl":"/services/data/v35.0/chatter/users","chatterFeedItemsUrl":"/services/data/v31.0/chatter/feed-items","userUrl":"/00558000000R5HUAA0"},"application":{"name":"vf-flex","canvasUrl":"https://vf-flex.herokuapp.com","applicationId":"06P58000000PH7e","version":"1.0","authType":"SIGNED_REQUEST","referenceId":"09H58000000PH5i","options":[],"samlInitiationMethod":"None","developerName":"vf_flex","isInstalledPersonalApp":false,"namespace":"khowling"},"organization":{"organizationId":"00D58000000Hlh6EAC","name":"salesforce","multicurrencyEnabled":false,"namespacePrefix":"khowling","currencyIsoCode":"GBP"},"environment":{"locationUrl":"https://kforce-dev-ed.my.salesforce.com/canvas/proxy.jsp?a=%7B%22referenceId%22%3A%2209H58000000PH5i%22%7D&ns=undefined&dn=undefined&ri=09H58000000PH5i&s=00D58000000Hlh6!ARMAQM2DDXYRQ.nZD4TfWLQa6k2cdOOyz1CHuoTcFoPfD60ZFPeAi6LX46gJGRdK.56mBtRUKS.O.VeAJbEG6X4EF_APBrLl&sr=&dm=https://kforce-dev-ed.my.salesforce.com&o=%7B%22frameborder%22%3A%220%22%2C%22width%22%3A%7B%22value%22%3A%22100%25%22%2C%22max%22%3A%221200px%22%7D%2C%22height%22%3A%7B%22value%22%3A%22200px%22%2C%22max%22%3A%22infinite%22%7D%2C%22scrolling%22%3A%22no%22%2C%22displayLocation%22%3A%22PageLayout%22%2C%22showLoadingStatus%22%3Atrue%2C%22record%22%3A%7B%22Id%22%3A%22a05580000004Dwn%22%2C%22fields%22%3A%22%22%7D%2C%22clientWidth%22%3A%221197px%22%2C%22clientHeight%22%3A%2230px%22%7D&v=35.0","displayLocation":"PageLayout","sublocation":null,"uiTheme":"Theme3","dimensions":{"width":"100%","height":"200px","maxWidth":"1200px","maxHeight":"infinite","clientWidth":"1197px","clientHeight":"30px"},"parameters":{},"record":{"attributes":{"type":"khowling__Bid__c","url":"/services/data/v35.0/sobjects/khowling__Bid__c/a05580000004DwnAAE"},"Id":"a05580000004DwnAAE"},"version":{"season":"WINTER","api":"35.0"}}}}';
-  req.session.signedreq = JSON.parse(json_envelope);
+  let canvasRequest = JSON.parse(json_envelope);
+
+  req.session.signedreq = canvasRequest;
   req.session.sfdatakey = `sfdata:${req.sessionID}:${req.session.signedreq.context.environment.record.Id}`;
-  getData (req.session.sfdatakey, req.session.signedreq);
-  res.render('index', {canvas_req: json_envelope});
+  redis.del(req.session.sfdatakey, `${req.session.sfdatakey}:data`, function (err, numRemoved) {
+    console.log ('deleted existing keys ' + numRemoved);
+    getData (req.session.sfdatakey, req.session.signedreq);
+    res.render('index', {canvas_req: json_envelope});
+  });
 });
 
 app.get('/data', (req, res) => {
@@ -117,20 +206,25 @@ app.get('/data', (req, res) => {
     res.status(400).send("not authorized");
   else if (!req.session.sfdatakey)
     res.status(400).send("no data request recorded");
-  else
+  else {
+    console.log ('listening for list ' + req.session.sfdatakey );
     redis.blpop(req.session.sfdatakey, 10, (err, reply) => {
-      if (err)
-        res.status(400).send(err);
+      console.log ('got key ' + err + ' : ' + reply);
+      if (err || reply === null)
+        res.status(400).send(err || 'no data ready');
       else {
         redis.hgetall(`${req.session.sfdatakey}:data`, (err, data) => {
           if (err)
             res.status(400).send(err);
           else {
-            res.json({leavers: JSON.parse(data.leavers), pnl: JSON.parse(data.pnl)});
+            res.json({leavers: data.leavers && JSON.parse(data.leavers),
+              pnl: data.pnl && JSON.parse(data.pnl),
+              versions: data.versions && JSON.parse(data.versions)});
           }
         });
       }
     });
+  }
 });
 
 var CONSUMER_SECRET = '141664825981593229';
@@ -165,8 +259,14 @@ app.post('/',  urlencodedParser, function(req, res){
 		if (encodedSig !== expectedSig) {
 			throw 'Bad signed JSON Signature!';
 		}
-    req.session.signedreq = json_envelope;
-		res.render('index', {canvas_req: json_envelope});
+
+    req.session.signedreq = canvasRequest;
+    req.session.sfdatakey = `sfdata:${req.sessionID}:${req.session.signedreq.context.environment.record.Id}`;
+    redis.del(req.session.sfdatakey, `${req.session.sfdatakey}:data`, function (err, numRemoved) {
+      console.log ('deleted existing keys ' + numRemoved);
+      getData (req.session.sfdatakey, req.session.signedreq);
+      res.render('index', {canvas_req: json_envelope});
+    });
 });
 
 console.log (`Connecting Redis ...... [${process.env.REDIS_URL}]`);

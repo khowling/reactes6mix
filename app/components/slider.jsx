@@ -8,22 +8,23 @@ export default class Sliders extends React.Component {
     super(props);
     this._newSliderValue = this._newSliderValue.bind(this);
     this.state = {newvalues: {}, sliders: [
-      {key: "term", name: "Term", min: 6, max: 36, step: 6},
-      {key: "port_discount", name: "Port Discount", min: 0, max: 100, step: 10},
-      {key: "access_markup", name: "Access Markup", min: 0, max: 100, step: 5},
-      {key: "slid-dsc", name: "Yes/No", min: 0, max: 100, step: 100},
-      {key: "slid-1", name: "0-60", min: 0, max: 60, step: 10}
+      {key: "term", name: "Term (months)", min: 6, max: 36, step: 6},
+      {key: "port_discount", name: "Port Discount (%)", min: 0, max: 100, step: 10},
+      {key: "access_markup", name: "Access Markup (%)", min: 0, max: 100, step: 5},
+      {key: "cpe_hardware", name: "CPE Hardware (Y/N)", min: 0, max: 1, step: 1},
+      {key: "amort_oneoff", name: "Amortise Charges (Y/N)", min: 0, max: 1, step: 1}
     ]};
   }
 
   _newSliderValue(val) {
     this.setState({newvalues: Object.assign(this.state.newvalues, val)}, () => {
         console.log (`got new slider val ${JSON.stringify(this.state.newvalues)}`);
-        this.props.recalcFn (this.state.newvalues);
+        this.props.recalcFn (this.state.newvalues, false);
     });
   }
 
   render() {
+    console.log ('Sliders render() with values ' + JSON.stringify(this.props.initials));
     let that = this;
     return (
       <div className="slds-card">
@@ -43,8 +44,8 @@ export default class Sliders extends React.Component {
             <tbody>
               { this.state.sliders.map(s => { return (
                 <tr key={s.key} className="slds-hint-parent">
-                  <td className="sl ds-s ize--1-of-3" data-label="Name">{s.name}</td>
-                  <td className="sl ds-si ze--2-of-3" data-label="Name"><Slider id={s.key} initial={that.props.initials && that.props.initials[s.key] || 0} min={s.min} max={s.max}  step={s.step} updateValueFn={that._newSliderValue}/></td>
+                  <td className="slds-size--1-of-4" data-label="Name">{s.name}</td>
+                  <td className="slds-size--3-of-4" data-label="Name"><Slider id={s.key} initial={that.props.initials && that.props.initials[s.key] || 0} min={s.min} max={s.max}  step={s.step} updateValueFn={that._newSliderValue}/></td>
                 </tr>
               );})}
             </tbody>
@@ -63,8 +64,9 @@ export class Slider extends React.Component {
     this.state = {current: props.initial};
   }
   componentWillReceiveProps(nextProps) {
-    if (nextProps.initial && (nextProps.initial !== this.state.current && nextProps.initial !== this.props.initial )) {
-      console.log (`componentWillReceiveProps prop ${nextProps.initial} state ${this.state.current}`);
+    //console.log (`Slider nextProps ${JSON.stringify(nextProps)}`);
+    if (typeof nextProps.initial !== "undefined" && (nextProps.initial !== this.state.current && nextProps.initial !== this.props.initial )) {
+      console.log (`Slider componentWillReceiveProps prop ${nextProps.initial} state ${this.state.current}`);
       this.setState({current: nextProps.initial});
     }
   }
