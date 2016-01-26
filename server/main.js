@@ -255,7 +255,7 @@ app.post('/',  urlencodedParser, function(req, res){
 			throw 'Unknown algorithm '+algorithm+'. Expected HMACSHA256';
 		}
 
-		expectedSig = crypto.createHmac('sha256', CONSUMER_SECRET).update(encodedEnvelope).digest('base64');
+		let expectedSig = crypto.createHmac('sha256', CONSUMER_SECRET).update(encodedEnvelope).digest('base64');
 		if (encodedSig !== expectedSig) {
 			throw 'Bad signed JSON Signature!';
 		}
