@@ -271,6 +271,7 @@ app.post('/',  urlencodedParser, function(req, res){
 
 console.log (`Connecting Redis ...... [${process.env.REDIS_URL}]`);
 redis.on('connect', function () {
+  console.log (`Listening on [${process.env.PORT}]`);
   app.listen(process.env.PORT || 5000);
 });
 
