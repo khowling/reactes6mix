@@ -16889,7 +16889,7 @@
 	          _react2['default'].createElement(
 	            'a',
 	            { href: '#' },
-	            'View All ',
+	            'More Information ',
 	            _react2['default'].createElement(
 	              'span',
 	              { className: 'slds-assistive-text' },
@@ -17186,6 +17186,42 @@
 	                    '%'
 	                  )
 	                )
+	              ),
+	              _react2['default'].createElement(
+	                'tr',
+	                { className: 'slds-hint-parent' },
+	                _react2['default'].createElement(
+	                  'td',
+	                  null,
+	                  'EBIT'
+	                ),
+	                _react2['default'].createElement(
+	                  'td',
+	                  null,
+	                  _react2['default'].createElement(
+	                    'p',
+	                    { className: 'slds-text-heading--medium', style: { textAlign: "right" } },
+	                    'TBC'
+	                  )
+	                )
+	              ),
+	              _react2['default'].createElement(
+	                'tr',
+	                { className: 'slds-hint-parent' },
+	                _react2['default'].createElement(
+	                  'td',
+	                  null,
+	                  'EBITDA'
+	                ),
+	                _react2['default'].createElement(
+	                  'td',
+	                  null,
+	                  _react2['default'].createElement(
+	                    'p',
+	                    { className: 'slds-text-heading--medium', style: { textAlign: "right" } },
+	                    'TBC'
+	                  )
+	                )
 	              )
 	            )
 	          )
@@ -17196,7 +17232,7 @@
 	          _react2['default'].createElement(
 	            'a',
 	            { href: '#' },
-	            'View All ',
+	            'More Information ',
 	            _react2['default'].createElement(
 	              'span',
 	              { className: 'slds-assistive-text' },

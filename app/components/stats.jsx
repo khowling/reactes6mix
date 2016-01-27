@@ -65,10 +65,18 @@ export default class Stats extends React.Component {
                 <td>Gross Margin %</td>
                 <td><p className="slds-text-heading--medium" style={{textAlign: "right"}}>{this.props.pnl && this.props.pnl.marginage.toFixed(2) || 'updating..'}%</p></td>
               </tr>
+              <tr className="slds-hint-parent">
+                <td>EBIT</td>
+                <td><p className="slds-text-heading--medium" style={{textAlign: "right"}}>TBC</p></td>
+              </tr>
+              <tr className="slds-hint-parent">
+                <td>EBITDA</td>
+                <td><p className="slds-text-heading--medium" style={{textAlign: "right"}}>TBC</p></td>
+              </tr>
             </tbody>
           </table>
         </div>
-        <div className="slds-card__footer"><a href="#">View All <span className="slds-assistive-text">entity type</span></a></div>
+        <div className="slds-card__footer"><a href="#">More Information <span className="slds-assistive-text">entity type</span></a></div>
       </div>
     );
   }

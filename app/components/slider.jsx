@@ -51,7 +51,7 @@ export default class Sliders extends React.Component {
             </tbody>
           </table>
         </div>
-        <div className="slds-card__footer"><a href="#">View All <span className="slds-assistive-text">entity type</span></a></div>
+        <div className="slds-card__footer"><a href="#">More Information <span className="slds-assistive-text">entity type</span></a></div>
       </div>
     );
   }
