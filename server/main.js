@@ -33,14 +33,14 @@ function getData(key, canvasobj) {
           'Authorization': 'Bearer ' +canvasobj.client.oauthToken,
         } ,
         query: {
-          q:`select Id, Name, khowling__Leavers__c, khowling__P_L__c from khowling__Bid_P_L__c where khowling__Bid__c = '${canvasobj.context.environment.record.Id}'`
+          q:`select Id, Name, khowling__Leavers__c, khowling__P_L__c from khowling__Bid_P_L__c where khowling__Bid__c = '${canvasobj.context.environment.record.Id}' ORDER BY Id DESC LIMIT 5`
         }
       }).on('complete', (sfrecs) => {
         console.log ('finished get version (ms): ' + (Date.now() - st));
         if (sfrecs.records && sfrecs.records.length >0)
-          resolve1({versions: JSON.stringify(sfrecs.records)});
+          resolve1(sfrecs.records);
         else
-          resolve1({versions: JSON.stringify([])});
+          resolve1();
       }).on('error', (err) => {
   			console.error('error', err);
   			reject1('err : ' + err);
@@ -48,7 +48,7 @@ function getData(key, canvasobj) {
   			console.error('fail', err);
   			reject1('fail : ' + err);
   		});
-    }));
+    }).catch ((e) => {console.log ('error ' + e)}));
 
     pWork.push (new Promise((resolve2, reject2) => {
       let st = Date.now();
@@ -62,29 +62,10 @@ function getData(key, canvasobj) {
         }
       }).on('complete', (sfrecs) => {
         console.log ('finished get bid (ms): ' + (Date.now() - st));
-        let leavers = {
-          term: 0,
-          port_discount: 0,
-          access_markup: 0,
-          cpe_hardware: 0,
-          amort_oneoff: 0
-        };
-        if (sfrecs.records && sfrecs.records.length >0) {
-          leavers.term = parseInt(sfrecs.records[0].khowling__Bid__r.khowling__Contract_Term__c);
-          let pnl = calcpnl (sfrecs.records, leavers);
-
-          resolve2({
-            pnl: JSON.stringify(pnl),
-            leavers: JSON.stringify(leavers),
-            sfrecs: JSON.stringify(sfrecs.records)
-          });
-        } else {
-          resolve2({
-            pnl: JSON.stringify(calcpnl()),
-            leavers: JSON.stringify(leavers),
-            sfrecs: JSON.stringify([])
-          });
-        }
+        if (sfrecs.records && sfrecs.records.length >0)
+          resolve2(sfrecs.records);
+        else
+          resolve2();
       }).on('error', (err) => {
   			console.error('error', err);
   			reject2('err : ' + err);
@@ -92,22 +73,37 @@ function getData(key, canvasobj) {
   			console.error('fail', err);
   			reject2('fail : ' + err);
   		});
-    }));
+    }).catch ((e) => {console.log ('error ' + e)}));
 
     Promise.all(pWork).then((vals) => {
-      let results = Object.assign({}, vals[0], vals[1]);
-      console.log (`Got all results ${JSON.stringify(Object.keys(results))}`);
-      redis.hmset(`${key}:data`, results).then((succ) => {
-        console.log (`added data  ${JSON.stringify(succ)}`);
-        redis.lpush(key, "done", (succ) => {
-          console.log (`psuhed done ${JSON.stringify(succ)}`);
+      let versions =  vals[0], sfrecs = vals[1];
+      console.log (`Got all results #sites ${sfrecs && sfrecs.length}, #versions ${versions && versions.length}`);
+      let leavers = versions && JSON.parse(versions[0].khowling__Leavers__c) || {
+          term: sfrecs && parseInt(sfrecs.records[0].khowling__Bid__r.khowling__Contract_Term__c) || 0,
+          port_discount: 0,
+          access_markup: 0,
+          cpe_hardware: 0,
+          amort_oneoff: 0
+        };
+      //console.log (`using levers ${leavers}`);
+      redis.hmset(`${key}:data`, {
+            pnl: JSON.stringify(calcpnl (sfrecs, leavers)),
+            sfrecs: JSON.stringify(sfrecs),
+            versions: JSON.stringify(versions),
+            leavers: JSON.stringify(leavers),
+            leavers_current: versions && versions[0].Id || null
+          }).then((succ) => {
+        console.log (`added hash :data  ${JSON.stringify(succ)}`);
+        redis.lpush(key, "done", (err, num) => {
+          console.log (`${key} : psuhed "done" ${num} ${err}`);
           resolve(succ)
         });
       }, (err) => {
+        console.log ('err' + err);
         reject(err);
       })
-    });
-  });
+    }).catch ((e) => {console.log ('error ' + e)});
+  }).catch ((e) => {console.log ('error ' + e)});
 }
 
 function calcpnl (sfrecs, leavers) {
@@ -117,7 +113,6 @@ function calcpnl (sfrecs, leavers) {
   };
 
   if (sfrecs && sfrecs.length >0) for (let r of sfrecs) {
-
     if (!r.khowling__Router_Selection__r) r.khowling__Router_Selection__r = {khowling__Cost__c: 0, khowling__Markup__c:0};
     if (!r.khowling__Bid_Port_Speed__r) r.khowling__Bid_Port_Speed__r = {khowling__Cost__c: 0, khowling__Markup__c:0};
     if (!r.khowling__Access_Method__r) r.khowling__Access_Method__r = {khowling__Recurring_Cost__c: 0, khowling__One_Off_Cost__c:0, khowling__Markup__c:0};
@@ -134,7 +129,7 @@ function calcpnl (sfrecs, leavers) {
     if (leavers.port_discount >0) revenue -= (port_price / 100.0) * leavers.port_discount;
     if (leavers.access_markup >0) revenue += (access_price / 100.0) * leavers.access_markup;
     if (leavers.cpe_hardware == 1) revenue -= router_price;
-    console.log (`revenue  router_price ${router_price} + access_price ${access_price} + port_price ${port_price} = ${revenue}`);
+    //console.log (`revenue  router_price ${router_price} + access_price ${access_price} + port_price ${port_price} = ${revenue}`);
     let grossmargin = revenue - router_1cost - access_1cost - access_ncost - port_1cost;
 
     pnl.revenue+= revenue;
@@ -146,6 +141,7 @@ function calcpnl (sfrecs, leavers) {
   } catch (e) {
     pnl.marginage = 0;
   }
+  console.log ('pnl');
   return pnl;
 }
 
@@ -188,7 +184,7 @@ app.post('/recalc', jsonParser, function(req, res) {
 });
 
 app.get('/go', function(req, res){
-  let token = '00D58000000Hlh6!ARMAQCkwwdYhSbP6847QG_SdaWlOXc7x2kJ.3g8zE7BPh9Plh4bpiP_XwTkmRY9NuHIQKXC69SpUkFi3IQcLJnrcfhx9XxKR';
+  let token = '00D58000000Hlh6!ARMAQJKvnnTwCqkVwY0AcuGAa5.rYViosUCErn2onua5983DAos2pm8IU5PlqfjWOOqJCgtuebJ5_s3Uwz9t5zgV77DMjiGx';
   let json_envelope = '{"algorithm":"HMACSHA256","issuedAt":1677461276,"userId":"00558000000R5HUAA0","client":{"refreshToken":null,"instanceId":"09H58000000PH5i:","targetOrigin":"https://kforce-dev-ed.my.salesforce.com","instanceUrl":"https://kforce-dev-ed.my.salesforce.com","oauthToken":"'+token+'"},"context":{"user":{"userId":"00558000000R5HUAA0","userName":"khowling@dev.org","firstName":"keith","lastName":"howling","email":"khowling@gmail.com","fullName":"keith howling","locale":"en_GB","language":"en_US","timeZone":"Europe/London","profileId":"00e58000000WBp8","roleId":null,"userType":"STANDARD","currencyISOCode":"GBP","profilePhotoUrl":"https://kforce-dev-ed--c.eu6.content.force.com/profilephoto/005/F","profileThumbnailUrl":"https://kforce-dev-ed--c.eu6.content.force.com/profilephoto/005/T","siteUrl":null,"siteUrlPrefix":null,"networkId":null,"accessibilityModeEnabled":false,"isDefaultNetwork":true},"links":{"loginUrl":"https://kforce-dev-ed.my.salesforce.com","enterpriseUrl":"/services/Soap/c/35.0/00D58000000Hlh6","metadataUrl":"/services/Soap/m/35.0/00D58000000Hlh6","partnerUrl":"/services/Soap/u/35.0/00D58000000Hlh6","restUrl":"/services/data/v35.0/","sobjectUrl":"/services/data/v35.0/sobjects/","searchUrl":"/services/data/v35.0/search/","queryUrl":"/services/data/v35.0/query/","recentItemsUrl":"/services/data/v35.0/recent/","chatterFeedsUrl":"/services/data/v31.0/chatter/feeds","chatterGroupsUrl":"/services/data/v35.0/chatter/groups","chatterUsersUrl":"/services/data/v35.0/chatter/users","chatterFeedItemsUrl":"/services/data/v31.0/chatter/feed-items","userUrl":"/00558000000R5HUAA0"},"application":{"name":"vf-flex","canvasUrl":"https://vf-flex.herokuapp.com","applicationId":"06P58000000PH7e","version":"1.0","authType":"SIGNED_REQUEST","referenceId":"09H58000000PH5i","options":[],"samlInitiationMethod":"None","developerName":"vf_flex","isInstalledPersonalApp":false,"namespace":"khowling"},"organization":{"organizationId":"00D58000000Hlh6EAC","name":"salesforce","multicurrencyEnabled":false,"namespacePrefix":"khowling","currencyIsoCode":"GBP"},"environment":{"locationUrl":"https://kforce-dev-ed.my.salesforce.com/canvas/proxy.jsp?a=%7B%22referenceId%22%3A%2209H58000000PH5i%22%7D&ns=undefined&dn=undefined&ri=09H58000000PH5i&s=00D58000000Hlh6!ARMAQM2DDXYRQ.nZD4TfWLQa6k2cdOOyz1CHuoTcFoPfD60ZFPeAi6LX46gJGRdK.56mBtRUKS.O.VeAJbEG6X4EF_APBrLl&sr=&dm=https://kforce-dev-ed.my.salesforce.com&o=%7B%22frameborder%22%3A%220%22%2C%22width%22%3A%7B%22value%22%3A%22100%25%22%2C%22max%22%3A%221200px%22%7D%2C%22height%22%3A%7B%22value%22%3A%22200px%22%2C%22max%22%3A%22infinite%22%7D%2C%22scrolling%22%3A%22no%22%2C%22displayLocation%22%3A%22PageLayout%22%2C%22showLoadingStatus%22%3Atrue%2C%22record%22%3A%7B%22Id%22%3A%22a05580000004Dwn%22%2C%22fields%22%3A%22%22%7D%2C%22clientWidth%22%3A%221197px%22%2C%22clientHeight%22%3A%2230px%22%7D&v=35.0","displayLocation":"PageLayout","sublocation":null,"uiTheme":"Theme3","dimensions":{"width":"100%","height":"200px","maxWidth":"1200px","maxHeight":"infinite","clientWidth":"1197px","clientHeight":"30px"},"parameters":{},"record":{"attributes":{"type":"khowling__Bid__c","url":"/services/data/v35.0/sobjects/khowling__Bid__c/a05580000004DwnAAE"},"Id":"a05580000004DwnAAE"},"version":{"season":"WINTER","api":"35.0"}}}}';
   let canvasRequest = JSON.parse(json_envelope);
 
@@ -208,7 +204,7 @@ app.get('/data', (req, res) => {
     res.status(400).send("no data request recorded");
   else {
     console.log ('listening for list ' + req.session.sfdatakey );
-    redis.blpop(req.session.sfdatakey, 10, (err, reply) => {
+    redis.blpop(req.session.sfdatakey, 0, (err, reply) => {
       console.log ('got key ' + err + ' : ' + reply);
       if (err || reply === null)
         res.status(400).send(err || 'no data ready');
@@ -217,7 +213,9 @@ app.get('/data', (req, res) => {
           if (err)
             res.status(400).send(err);
           else {
-            res.json({leavers: data.leavers && JSON.parse(data.leavers),
+            res.json({
+              leavers: data.leavers && JSON.parse(data.leavers),
+              leavers_current:  data.leavers_current,
               pnl: data.pnl && JSON.parse(data.pnl),
               versions: data.versions && JSON.parse(data.versions)});
           }
@@ -271,11 +269,13 @@ app.post('/',  urlencodedParser, function(req, res){
 
 console.log (`Connecting Redis ...... [${process.env.REDIS_URL}]`);
 redis.on('connect', function () {
-  console.log (`Listening on [${process.env.PORT}]`);
-  app.listen(process.env.PORT || 5000);
+  console.error ('Redis connected');
 });
 
 redis.on('error', function (e) {
   console.error ('Redis error',e);
 //  client.end();
 });
+
+console.log (`Listening on [${process.env.PORT}]`);
+app.listen(process.env.PORT || 5000);
