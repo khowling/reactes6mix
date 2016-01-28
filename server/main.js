@@ -141,13 +141,12 @@ function calcpnl (sfrecs, leavers) {
   } catch (e) {
     pnl.marginage = 0;
   }
-  console.log ('pnl');
   return pnl;
 }
 
 app.post('/recalc', jsonParser, function(req, res) {
-  let leavers = req.body, save = req.query.save;
-  console.log (`leavers ${JSON.stringify(leavers)} ${save}`);
+  let save = req.query.save;
+  console.log (`/recalc ${JSON.stringify(req.body)} [save: ${save}]`);
 
   if (!req.session.signedreq)
     res.status(400).send("not authorized");
@@ -159,16 +158,22 @@ app.post('/recalc', jsonParser, function(req, res) {
         res.status(400).send(err);
       else {
         if (!save) {
-          let newleavers = Object.assign({}, JSON.parse(data.leavers), leavers);
-          res.json({leavers: newleavers, pnl: calcpnl(JSON.parse(data.sfrecs), newleavers)});
+          if (req.body.leavers) {
+            let newleavers = Object.assign({}, JSON.parse(data.leavers), req.body.leavers);
+            res.json({leavers: newleavers, pnl: calcpnl(JSON.parse(data.sfrecs), newleavers)});
+          } else if (req.body.version) {
+            let newleavers = JSON.parse(JSON.parse(data.versions).find((v) => v.Id === req.body.version).khowling__Leavers__c);
+            console.log ('newleavers ' + JSON.stringify(newleavers));
+            res.json({leavers_current: req.body.version, leavers: newleavers, pnl: calcpnl(JSON.parse(data.sfrecs), newleavers)});
+          }
         } else {
           console.log ('saving');
           let canvasobj = req.session.signedreq,
-              pnl = calcpnl(JSON.parse(data.sfrecs), leavers);
+              pnl = calcpnl(JSON.parse(data.sfrecs), req.body.leavers);
           rest.postJson ( canvasobj.client.instanceUrl +  canvasobj.context.links.sobjectUrl + 'khowling__Bid_P_L__c',
             {
               "khowling__Bid__c": canvasobj.context.environment.record.Id,
-              "khowling__Leavers__c": JSON.stringify(leavers),
+              "khowling__Leavers__c": JSON.stringify(req.body.leavers),
               "khowling__P_L__c": JSON.stringify(pnl)
             },{
             headers: {
@@ -176,7 +181,7 @@ app.post('/recalc', jsonParser, function(req, res) {
             } ,
           }).on('complete', (sfrecs) => {
             console.log ('got ' + JSON.stringify(sfrecs));
-            res.json({leavers: leavers, pnl: pnl});
+            res.json({leavers: req.body.leavers, pnl: pnl});
           });
         }
       }

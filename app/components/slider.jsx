@@ -19,7 +19,7 @@ export default class Sliders extends React.Component {
   _newSliderValue(val) {
     this.setState({newvalues: Object.assign(this.state.newvalues, val)}, () => {
         console.log (`got new slider val ${JSON.stringify(this.state.newvalues)}`);
-        this.props.recalcFn (this.state.newvalues, false);
+        this.props.recalcFn (this.state.newvalues, null, false);
     });
   }
 

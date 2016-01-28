@@ -16662,20 +16662,21 @@
 	    }
 	  }, {
 	    key: '_recalc',
-	    value: function _recalc(leavers, save) {
+	    value: function _recalc(leavers, versionid, save) {
 	      var _this2 = this;
 
 	      var client = new XMLHttpRequest();
 	      client.open('POST', '/recalc' + (save && '?save=1' || ''));
 	      client.withCredentials = true;
 	      client.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-	      client.send(JSON.stringify(_Object$assign({}, this.state.leavers, leavers)));
+	      var body = leavers ? { leavers: _Object$assign({}, this.state.leavers, leavers) } : { version: versionid };
+	      client.send(JSON.stringify(body));
 	      client.onload = function (e) {
 	        if (client.status == 200) {
 	          // Performs the function "resolve" when this.status is equal to 200
 	          var data = JSON.parse(client.response);
 	          console.log('app setState leavers : ' + JSON.stringify(data.leavers));
-	          _this2.setState({ pnl: data.pnl, leavers: data.leavers });
+	          _this2.setState({ pnl: data.pnl, leavers: data.leavers, leavers_current: data.leavers_current });
 	        } else {
 	          // Performs the function "reject" when this.status is different than 200
 	          console.log('error ' + client.response);
@@ -16688,15 +16689,12 @@
 	  }, {
 	    key: '_saveFlex',
 	    value: function _saveFlex() {
-	      this._recalc(this.state.leavers, true);
+	      this._recalc(this.state.leavers, null, true);
 	    }
 	  }, {
 	    key: '_loadVersion',
 	    value: function _loadVersion(id) {
-	      var ver = this.state.versions.find(function (v) {
-	        return v.Id === id;
-	      });
-	      this._recalc(JSON.parse(ver.khowling__Leavers__c), false);
+	      this._recalc(null, id, false);
 	    }
 	  }, {
 	    key: 'render',
@@ -16715,7 +16713,7 @@
 	            _react2['default'].createElement(
 	              'div',
 	              { className: 'slds-col--padded slds-size--2-of-5 slds-medium-size--2-of-5' },
-	              _react2['default'].createElement(_componentsStatsJsx2['default'], { pnl: this.state.pnl, versions: this.state.versions, saveFlex: this._saveFlex.bind(this), loadVersion: this._loadVersion.bind(this) })
+	              _react2['default'].createElement(_componentsStatsJsx2['default'], { pnl: this.state.pnl, versions: this.state.versions, leavers_current: this.state.leavers_current, saveFlex: this._saveFlex.bind(this), loadVersion: this._loadVersion.bind(this) })
 	            ),
 	            _react2['default'].createElement(
 	              'div',
@@ -16822,7 +16820,7 @@
 
 	      this.setState({ newvalues: _Object$assign(this.state.newvalues, val) }, function () {
 	        console.log('got new slider val ' + JSON.stringify(_this.state.newvalues));
-	        _this.props.recalcFn(_this.state.newvalues, false);
+	        _this.props.recalcFn(_this.state.newvalues, null, false);
 	      });
 	    }
 	  }, {
@@ -17049,7 +17047,12 @@
 	  }, {
 	    key: 'render',
 	    value: function render() {
-	      var that = this;
+	      var _this = this;
+
+	      var that = this,
+	          leavers_current = this.props.leavers_current && this.props.versions.find(function (v) {
+	        return v.Id == _this.props.leavers_current;
+	      }).Name || "Save new Version";
 	      return _react2['default'].createElement(
 	        'div',
 	        { className: 'slds-card' },
@@ -17083,7 +17086,7 @@
 	              _react2['default'].createElement(
 	                'button',
 	                { className: 'slds-button slds-button--neutral slds-button--small', onClick: this._saveFlex.bind(this) },
-	                'Save new Version'
+	                leavers_current
 	              ),
 	              _react2['default'].createElement(
 	                'div',

@@ -14,7 +14,8 @@ export default class Stats extends React.Component {
   }
 
   render() {
-    let that = this;
+    let that = this,
+        leavers_current = this.props.leavers_current && this.props.versions.find((v) => v.Id == this.props.leavers_current).Name || "Save new Version";
     return (
       <div className="slds-card">
         <div className="slds-card__header slds-grid">
@@ -29,7 +30,7 @@ export default class Stats extends React.Component {
           <div className="slds-no-flex">
             <div className="slds-button-group">
 
-              <button className="slds-button slds-button--neutral slds-button--small" onClick={this._saveFlex.bind(this)}>Save new Version</button>
+              <button className="slds-button slds-button--neutral slds-button--small" onClick={this._saveFlex.bind(this)}>{leavers_current}</button>
               <div className="slds-dropdown-trigger">
                 <button className="slds-button slds-button--icon-border-filled slds-toggle-visibility">
                   <SvgIcon  spriteType="utility" spriteName="down" classOverride="slds-icon-utility" />
