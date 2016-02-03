@@ -230,7 +230,7 @@ app.get('/data', (req, res) => {
   }
 });
 
-var CONSUMER_SECRET = '141664825981593229';
+var CONSUMER_SECRET = '3981679484973859730';
 app.post('/',  urlencodedParser, function(req, res){
 
 		console.log ('got the post from salesforce ' + req.body);
