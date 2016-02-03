@@ -79,7 +79,7 @@ function getData(key, canvasobj) {
       let versions =  vals[0], sfrecs = vals[1];
       console.log (`Got all results #sites ${sfrecs && sfrecs.length}, #versions ${versions && versions.length}`);
       let leavers = versions && JSON.parse(versions[0].Leavers__c) || {
-          term: sfrecs && parseInt(sfrecs.records[0].Bid__r.Contract_Term__c) || 0,
+          term: sfrecs && parseInt(sfrecs[0].Bid__r.Contract_Term__c) || 0,
           port_discount: 0,
           access_markup: 0,
           cpe_hardware: 0,
